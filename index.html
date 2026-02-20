@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP Agent Launchpad — High-Level Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green-50: #f0fdf4;
+    --green-100: #dcfce7;
+    --green-200: #bbf7d0;
+    --green-300: #86efac;
+    --green-400: #4ade80;
+    --green-500: #22c55e;
+    --green-600: #16a34a;
+    --green-700: #15803d;
+    --green-800: #166534;
+    --green-900: #14532d;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --blue-600: #2563eb;
+  }
+
+  body {
+    background: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--slate-800);
+  }
+
+  .doc-header {
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .doc-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--slate-900);
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-top: 4px;
+  }
+
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 48px 60px;
+  }
+
+  .section {
+    margin-bottom: 40px;
+    border: 1px solid var(--slate-200);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 20px;
+    background: var(--slate-50);
+    border-bottom: 1px solid var(--slate-200);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--blue-600);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-body {
+    padding: 20px;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: var(--slate-600);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+
+  .diagram-box {
+    border: 1px solid var(--slate-200);
+    border-radius: 6px;
+    padding: 16px 20px 12px;
+    background: #fff;
+  }
+  .diagram-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate-700);
+    margin-bottom: 20px;
+  }
+
+  /* ════════════════════════════════════════════════
+     ARCHITECTURE DIAGRAM — SVG-like CSS approach
+     ════════════════════════════════════════════════ */
+
+  .arch-canvas {
+    position: relative;
+    width: 100%;
+  }
+
+  /* Green container boxes */
+  .layer-box {
+    background: var(--green-50);
+    border: 2px solid var(--green-300);
+    border-radius: 8px;
+    position: relative;
+    padding: 16px;
+  }
+  .layer-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--green-800);
+    margin-bottom: 12px;
+  }
+
+  .box {
+    background: var(--green-100);
+    border: 1.5px solid var(--green-400);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--green-900);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+  }
+  .box-sub {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--green-700);
+    font-family: 'Inter', sans-serif;
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+  .box-dashed {
+    border-style: dashed;
+    background: rgba(220,252,231,0.4);
+  }
+  .box-accent {
+    background: var(--green-200);
+    border-color: var(--green-500);
+  }
+  .box-warn {
+    background: #fef9c3;
+    border: 1.5px solid #facc15;
+    color: #713f12;
+  }
+  .box-warn .box-sub { color: #92400e; }
+
+  /* Grid layouts */
+  .g1 { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+  .g5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 10px; }
+  .g-auto { display: grid; grid-template-columns: auto; gap: 12px; }
+
+  .flex-row { display: flex; gap: 12px; align-items: stretch; }
+  .flex-center { display: flex; align-items: center; justify-content: center; }
+  .flex-1 { flex: 1; }
+
+  /* Connection arrows */
+  .conn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .conn-line {
+    width: 2px;
+    background: var(--green-400);
+  }
+  .conn-line-h16 { height: 16px; }
+  .conn-line-h24 { height: 24px; }
+  .conn-head-down {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--green-400);
+  }
+  .conn-head-up {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 8px solid var(--green-400);
+  }
+  .conn-label {
+    font-size: 11px;
+    color: var(--green-700);
+    font-style: italic;
+    font-family: 'Inter', sans-serif;
+    margin-top: 2px;
+    text-align: center;
+  }
+
+  .arr-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .arr-right-line {
+    width: 24px;
+    height: 1.5px;
+    background: var(--green-400);
+  }
+  .arr-right-head {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid var(--green-400);
+  }
+  .arr-left-head {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 7px solid var(--green-400);
+  }
+  .arr-label {
+    font-size: 10px;
+    color: var(--green-700);
+    font-style: italic;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+    padding: 0 6px;
+  }
+
+  /* Bidirectional arrow */
+  .arr-bidir {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  /* For vertical spacing */
+  .spacer-8 { height: 8px; }
+  .spacer-12 { height: 12px; }
+
+  /* Annotation callout */
+  .annotation {
+    font-size: 11px;
+    color: var(--slate-500);
+    font-style: italic;
+    text-align: center;
+    padding: 4px;
+  }
+
+  /* Side label */
+  .side-label {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green-600);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 4px;
+    background: var(--green-50);
+    border: 1px solid var(--green-200);
+    border-radius: 4px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+  }
+
+  @media (max-width: 900px) {
+    .g2, .g3, .g4, .g5 { grid-template-columns: 1fr; }
+    .flex-row { flex-direction: column; }
+    .side-label { display: none; }
+    .content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-title">SAP Agent Launchpad — High-Level Architecture</div>
+  <div class="doc-meta">Version: 1 | Generated: 19/02/2026</div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════════════════════════════════════════════
+     DIAGRAM 1: OVERALL SYSTEM ARCHITECTURE
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">🏗️ System Architecture</div>
+  <div class="section-body">
+    <div class="section-desc">
+      Five-layer architecture connecting business users to SAP systems through AI agents. The platform is agent-type-agnostic — all routing, rendering, and connectivity layers work identically for prompt-based, pro-code, and low-code agents. The Agent Repository stores only manifests (no execution logic). The Agent Router uses LLM-based intent classification (tool-choice pattern). HITL checkpoints allow agents to pause for human judgment. The A2UI pipeline dynamically generates SAP UI5 interfaces from structured agent output.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Overall System Architecture</div>
+      <div class="arch-canvas">
+
+        <!-- ── ROW 0: Users ── -->
+        <div style="display:flex;justify-content:center;gap:24px;margin-bottom:4px;">
+          <div class="box" style="min-width:200px;">👤 Business User
+            <span class="box-sub">AP Clerk / Procurement Manager / Controller</span>
+          </div>
+          <div class="box box-dashed" style="min-width:200px;">🛠️ Agent Builder
+            <span class="box-sub">Admin / Consultant creates agents</span>
+          </div>
+        </div>
+
+        <div class="conn">
+          <div class="conn-line conn-line-h16"></div>
+          <div class="conn-head-down"></div>
+          <div class="conn-label">Natural language query &nbsp;&nbsp;|&nbsp;&nbsp; Agent manifest registration</div>
+        </div>
+
+        <!-- ── ROW 1: Presentation Layer ── -->
+        <div class="flex-row" style="gap:0;">
+          <div class="side-label">Presentation</div>
+          <div class="layer-box flex-1">
+            <div class="layer-label">Presentation & Routing</div>
+            <div class="flex-row" style="align-items:center;">
+              <div class="box flex-1 box-accent">Chat Panel
+                <span class="box-sub">Conversational UI • Renders A2UI components<br>Captures HITL responses</span>
+              </div>
+
+              <div class="arr-bidir">
+                <div class="arr-left-head"></div>
+                <div class="arr-right-line" style="width:16px;"></div>
+                <div class="arr-right-head"></div>
+              </div>
+
+              <div class="box flex-1 box-accent">Agent Router
+                <span class="box-sub">LLM intent classification<br>Tool-choice pattern • Session context</span>
+              </div>
+
+              <div class="arr-right">
+                <div class="arr-right-line" style="width:16px;"></div>
+                <div class="arr-right-head"></div>
+              </div>
+
+              <div class="box flex-1 box-dashed">Agent Repository
+                <span class="box-sub">Manifest store only<br>name • type • trigger_patterns<br>system_prompt • mcp_servers<br>hitl_config • output_schema</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conn">
+          <div class="conn-line conn-line-h16"></div>
+          <div class="conn-head-down"></div>
+          <div class="conn-label">Dispatches to runtime based on agent manifest type field</div>
+        </div>
+
+        <!-- ── ROW 2: Execution Layer ── -->
+        <div class="flex-row" style="gap:0;">
+          <div class="side-label">Execution</div>
+          <div class="layer-box flex-1">
+            <div class="layer-label">Agent Execution Runtimes</div>
+            <div class="g3">
+              <div class="box box-accent">
+                Prompt Agent Runtime
+                <span class="box-sub">LLM agentic loop<br>THINK → ACT → OBSERVE → repeat<br>Enrichment injection<br>HITL detection & pause/resume</span>
+              </div>
+              <div class="box">Pro-Code Runtime
+                <span class="box-sub">LangGraph / Custom executor<br>Deterministic node-based flow<br>LLM at individual nodes<br>Graduated from prompt agents</span>
+              </div>
+              <div class="box">Low-Code Runtime
+                <span class="box-sub">n8n workflow engine<br>Visual workflow builder<br>Webhook triggers<br>Multi-system integrations</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bidirectional arrows: HITL ←→ Chat Panel + Runtimes ←→ MCP -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:40px;padding:4px 0;">
+          <div class="conn" style="flex:1;">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div class="conn-head-up"></div>
+              <div class="conn-label" style="margin:0;">HITL pause → Chat Panel</div>
+            </div>
+            <div class="conn-line" style="height:12px;"></div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div class="conn-head-down"></div>
+              <div class="conn-label" style="margin:0;">User response → resume</div>
+            </div>
+          </div>
+          <div class="conn" style="flex:1;">
+            <div class="conn-line conn-line-h16"></div>
+            <div class="conn-head-down"></div>
+            <div class="conn-label">MCP tool calls</div>
+          </div>
+        </div>
+
+        <!-- ── ROW 3: Connectivity Layer ── -->
+        <div class="flex-row" style="gap:0;">
+          <div class="side-label">Connectivity</div>
+          <div class="layer-box flex-1">
+            <div class="layer-label">SAP Connectivity</div>
+            <div class="g2">
+              <div>
+                <div class="box box-accent" style="margin-bottom:10px;">SAP OData MCP Server
+                  <span class="box-sub">Universal bridge for all agent types</span>
+                </div>
+                <div class="g4" style="gap:6px;">
+                  <div class="box" style="min-height:auto;padding:6px 8px;font-size:11px;">Discovery
+                    <span class="box-sub" style="font-size:10px;">discover • metadata</span>
+                  </div>
+                  <div class="box" style="min-height:auto;padding:6px 8px;font-size:11px;">Read
+                    <span class="box-sub" style="font-size:10px;">$filter $expand</span>
+                  </div>
+                  <div class="box box-warn" style="min-height:auto;padding:6px 8px;font-size:11px;">Write ⚠️
+                    <span class="box-sub" style="font-size:10px;">HITL gated</span>
+                  </div>
+                  <div class="box" style="min-height:auto;padding:6px 8px;font-size:11px;">Functions
+                    <span class="box-sub" style="font-size:10px;">RFC • Actions</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="box" style="margin-bottom:10px;">Enrichment Layer
+                  <span class="box-sub">Injects domain knowledge into prompts at runtime</span>
+                </div>
+                <div class="g3" style="gap:6px;">
+                  <div class="box" style="min-height:auto;padding:6px 8px;font-size:11px;">Service Catalog
+                    <span class="box-sub" style="font-size:10px;">Business concept →<br>OData endpoint</span>
+                  </div>
+                  <div class="box" style="min-height:auto;padding:6px 8px;font-size:11px;">Business Glossary
+                    <span class="box-sub" style="font-size:10px;">Client-specific<br>terminology</span>
+                  </div>
+                  <div class="box" style="min-height:auto;padding:6px 8px;font-size:11px;">Company Context
+                    <span class="box-sub" style="font-size:10px;">CoCode • Currency<br>FY • User scope</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conn">
+          <div class="conn-line conn-line-h16"></div>
+          <div class="conn-head-down"></div>
+          <div class="conn-label">Principal propagation — user's SAP identity</div>
+        </div>
+
+        <!-- ── ROW 4: SAP Systems ── -->
+        <div class="flex-row" style="gap:0;">
+          <div class="side-label">SAP Systems</div>
+          <div class="layer-box flex-1" style="background:rgba(240,253,244,0.5);">
+            <div class="layer-label">SAP Backend</div>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+              <div class="box" style="min-width:160px;">SAP S/4HANA
+                <span class="box-sub">OData V2/V4 APIs<br>BAPI / RFC</span>
+              </div>
+              <div class="box" style="min-width:160px;">HANA Cloud
+                <span class="box-sub">CDS Views<br>SQL Access</span>
+              </div>
+              <div class="box" style="min-width:160px;">SAP BTP
+                <span class="box-sub">XSUAA • Destination<br>AI Core • Work Zone</span>
+              </div>
+              <div class="box box-dashed" style="min-width:160px;">Mock Server
+                <span class="box-sub">Dev / Demo<br>Same MCP interface</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spacer-12"></div>
+
+        <!-- ── ROW 5: Rendering Layer (separate track) ── -->
+        <div class="flex-row" style="gap:0;">
+          <div class="side-label">Rendering</div>
+          <div class="layer-box flex-1">
+            <div class="layer-label">A2UI Rendering Pipeline</div>
+            <div class="flex-row" style="align-items:center;">
+              <div class="box flex-1">Agent Response
+                <span class="box-sub">Structured JSON from<br>any runtime (same contract)</span>
+              </div>
+              <div class="arr-right">
+                <div class="arr-right-line"></div>
+                <div class="arr-right-head"></div>
+              </div>
+              <div class="box flex-1 box-accent">A2UI Converter
+                <span class="box-sub">+ Google A2UI Schema<br>LLM → Component Spec</span>
+              </div>
+              <div class="arr-right">
+                <div class="arr-right-line"></div>
+                <div class="arr-right-head"></div>
+              </div>
+              <div class="box flex-1">A2UI Renderer
+                <span class="box-sub">Parse components<br>Generate UI5 XML Fragment</span>
+              </div>
+              <div class="arr-right">
+                <div class="arr-right-line"></div>
+                <div class="arr-right-head"></div>
+              </div>
+              <div class="box flex-1 box-accent">Chat Panel
+                <span class="box-sub">Render UI5 components<br>Tables • Cards • Charts<br>Approval dialogs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     DIAGRAM 2: REQUEST FLOW (like the Data Flow in PRD)
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">🔄 Request Flow</div>
+  <div class="section-body">
+    <div class="section-desc">
+      End-to-end request flow showing how a user query travels through the system. The top row shows the happy path for a prompt-based agent. The middle row shows the agentic loop with SAP data retrieval. The bottom row shows the rendering path back to the user.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Data Flow</div>
+      <div class="arch-canvas">
+
+        <!-- Row 1 -->
+        <div class="flex-row" style="align-items:center;flex-wrap:nowrap;overflow-x:auto;padding:8px 0;">
+          <div class="box" style="min-width:80px;flex-shrink:0;">User</div>
+
+          <div class="arr-right" style="flex-shrink:0;">
+            <div class="arr-right-line" style="width:12px;"></div>
+            <div class="arr-right-head"></div>
+          </div>
+
+          <div class="box" style="min-width:100px;flex-shrink:0;">Chat Panel</div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">query +<br>history</div>
+            <div class="arr-right" style="flex-shrink:0;">
+              <div class="arr-right-line" style="width:12px;"></div>
+              <div class="arr-right-head"></div>
+            </div>
+          </div>
+
+          <div class="box box-accent" style="min-width:120px;flex-shrink:0;">Agent Router
+            <span class="box-sub">LLM classifies</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">lookup<br>manifest</div>
+            <div class="arr-right" style="flex-shrink:0;">
+              <div class="arr-right-line" style="width:12px;"></div>
+              <div class="arr-right-head"></div>
+            </div>
+          </div>
+
+          <div class="box box-dashed" style="min-width:120px;flex-shrink:0;">Repository
+            <span class="box-sub">Load manifest</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">dispatch</div>
+            <div class="arr-right" style="flex-shrink:0;">
+              <div class="arr-right-line" style="width:12px;"></div>
+              <div class="arr-right-head"></div>
+            </div>
+          </div>
+
+          <div class="box box-accent" style="min-width:140px;flex-shrink:0;">Runtime
+            <span class="box-sub">Enrich prompt</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">inject</div>
+            <div class="arr-right" style="flex-shrink:0;">
+              <div class="arr-right-line" style="width:12px;"></div>
+              <div class="arr-right-head"></div>
+            </div>
+          </div>
+
+          <div class="box" style="min-width:120px;flex-shrink:0;">Enrichment
+            <span class="box-sub">Catalog + Glossary<br>+ Context</span>
+          </div>
+        </div>
+
+        <div class="conn"><div class="conn-line" style="height:10px;"></div><div class="conn-head-down"></div></div>
+
+        <!-- Row 2: Agentic loop -->
+        <div class="flex-row" style="align-items:center;flex-wrap:nowrap;overflow-x:auto;padding:8px 0;">
+          <div class="box box-accent" style="min-width:100px;flex-shrink:0;">🧠 LLM
+            <span class="box-sub">THINK</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">MCP calls</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box" style="min-width:120px;flex-shrink:0;">MCP Server
+            <span class="box-sub">sap_odata_read</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">OData</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box" style="min-width:120px;flex-shrink:0;">SAP S/4HANA
+            <span class="box-sub">OData Response</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">result</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box box-accent" style="min-width:100px;flex-shrink:0;">🧠 LLM
+            <span class="box-sub">OBSERVE</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">check</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box box-warn" style="min-width:100px;flex-shrink:0;">HITL Check
+            <span class="box-sub">Approve?<br>Clarify?</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">or continue</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box box-accent" style="min-width:100px;flex-shrink:0;">🧠 LLM
+            <span class="box-sub">ANALYZE</span>
+          </div>
+        </div>
+
+        <div class="conn"><div class="conn-line" style="height:10px;"></div><div class="conn-head-down"></div><div class="conn-label">Structured JSON response</div></div>
+
+        <!-- Row 3: A2UI rendering -->
+        <div class="flex-row" style="align-items:center;flex-wrap:nowrap;overflow-x:auto;padding:8px 0;">
+          <div class="box" style="min-width:120px;flex-shrink:0;">Agent Output
+            <span class="box-sub">Structured JSON</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">+ A2UI<br>Schema</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box box-accent" style="min-width:130px;flex-shrink:0;">A2UI Converter
+            <span class="box-sub">LLM → Components</span>
+          </div>
+
+          <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+
+          <div class="box" style="min-width:130px;flex-shrink:0;">A2UI Renderer
+            <span class="box-sub">UI5 XML Fragment</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding:0 2px;">
+            <div class="arr-label" style="padding:0;font-size:9px;">fragment +<br>data model</div>
+            <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+          </div>
+
+          <div class="box box-accent" style="min-width:130px;flex-shrink:0;">Chat Panel
+            <span class="box-sub">Render UI5 components</span>
+          </div>
+
+          <div class="arr-right"><div class="arr-right-line" style="width:12px;"></div><div class="arr-right-head"></div></div>
+
+          <div class="box" style="min-width:80px;flex-shrink:0;">User
+            <span class="box-sub">Sees cards, tables,<br>charts, approvals</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     DIAGRAM 3: DEPLOYMENT ARCHITECTURE
+     ═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-header">☁️ Deployment Architecture</div>
+  <div class="section-body">
+    <div class="section-desc">
+      The Agent Launchpad deploys on SAP BTP Cloud Foundry. The Chat Panel and Agent Router run as a single Node.js application behind the App Router. The MCP Server runs as a separate microservice with SAP Destination bindings. Pro-code agents (LangGraph) deploy as sidecar containers. The A2UI Renderer is embedded in the main application. Authentication flows through XSUAA with principal propagation to SAP backend systems.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Deployment Architecture (SAP BTP)</div>
+      <div class="arch-canvas">
+
+        <!-- Cloud Foundry Space -->
+        <div class="layer-box">
+          <div class="layer-label">Cloud Foundry Space</div>
+
+          <!-- Applications -->
+          <div class="layer-box" style="margin-bottom:12px;">
+            <div class="layer-label">Applications</div>
+            <div class="g3">
+              <div class="box">App Router
+                <span class="box-sub">256MB<br>XSUAA auth • route to services</span>
+              </div>
+              <div class="box box-accent">Agent Launchpad Service
+                <span class="box-sub">1024MB • Node.js<br>Chat Panel • Router • Prompt Runtime<br>A2UI Pipeline • Agent Repository</span>
+              </div>
+              <div class="box">SAP MCP Server
+                <span class="box-sub">512MB • Node.js<br>OData proxy • Discovery<br>RFC bridge</span>
+              </div>
+            </div>
+            <div class="spacer-8"></div>
+            <div class="g3">
+              <div class="box box-dashed">LangGraph Workers
+                <span class="box-sub">512MB • Python<br>Pro-code agent execution<br>Scales with demand</span>
+              </div>
+              <div class="box box-dashed">n8n Instance
+                <span class="box-sub">512MB<br>Low-code workflow engine<br>Webhook triggers</span>
+              </div>
+              <div class="box box-dashed">Mock MCP Server
+                <span class="box-sub">256MB • Dev only<br>Sample SAP data<br>Same tool interface</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Service Instances -->
+          <div class="layer-box">
+            <div class="layer-label">Service Instances</div>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+              <div class="box" style="min-width:140px;">XSUAA
+                <span class="box-sub">xsuaa/application<br>Role-based access</span>
+              </div>
+              <div class="box" style="min-width:140px;">Destination
+                <span class="box-sub">destination/lite<br>SAP system connections</span>
+              </div>
+              <div class="box" style="min-width:140px;">HANA Cloud
+                <span class="box-sub">hana/hdi-shared<br>Agent Repository store</span>
+              </div>
+              <div class="box" style="min-width:140px;">AI Core
+                <span class="box-sub">aicore/standard<br>LLM proxy (Claude)</span>
+              </div>
+              <div class="box" style="min-width:140px;">HTML5 Repo
+                <span class="box-sub">html5-apps-repo<br>Chat Panel UI</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="conn"><div class="conn-line conn-line-h24"></div><div class="conn-head-down"></div><div class="conn-label">Destination service + Principal propagation</div></div>
+
+        <!-- SAP Backend -->
+        <div class="layer-box" style="background:rgba(240,253,244,0.4);">
+          <div class="layer-label">SAP Backend Systems</div>
+          <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+            <div class="box" style="min-width:180px;">SAP S/4HANA
+              <span class="box-sub">On-premise or Cloud<br>OData APIs • RFC/BAPI</span>
+            </div>
+            <div class="box" style="min-width:180px;">HANA Cloud
+              <span class="box-sub">Database<br>CDS Views • SQL</span>
+            </div>
+            <div class="box" style="min-width:180px;">SAP Build Work Zone
+              <span class="box-sub">Fiori Launchpad<br>Agent Launchpad tile</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
