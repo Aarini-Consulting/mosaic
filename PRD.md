@@ -88,6 +88,8 @@ Prompt-based agents serve as rapid prototypes. When usage patterns stabilize and
 
 The Agent Repository is purely a manifest store. It contains no execution logic. Each registered agent is described by a manifest that provides the Router with enough information to match user intent, and the appropriate Runtime with enough configuration to execute the agent.
 
+![alt text](./docs/assets/agent-repository.png)
+
 ### 5.1 Manifest Structure
 
 | Field | Description | Used By |
@@ -206,6 +208,8 @@ When the loop pauses for HITL, the Runtime serializes agent state (conversation 
 ## 9. A2UI Rendering Pipeline
 
 The Adaptive UI pipeline transforms structured agent output into SAP UI5 visual components rendered within the Chat Panel. It operates identically regardless of agent type.
+
+![alt text](./docs/assets/a2ui-renderer.png)
 
 ### 9.1 Pipeline Stages
 
