@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOSAIC — HITL Interaction Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green-50: #f0fdf4;
+    --green-100: #dcfce7;
+    --green-200: #bbf7d0;
+    --green-300: #86efac;
+    --green-400: #4ade80;
+    --green-500: #22c55e;
+    --green-600: #16a34a;
+    --green-700: #15803d;
+    --green-800: #166534;
+    --green-900: #14532d;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --blue-600: #2563eb;
+    --yellow-50: #fef9c3;
+    --yellow-400: #facc15;
+    --yellow-700: #a16207;
+    --red-500: #ef4444;
+  }
+
+  body {
+    background: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--slate-800);
+    display: flex;
+    justify-content: center;
+    padding: 32px;
+  }
+
+  .diagram-wrapper {
+    width: 680px;
+    border: 1px solid var(--slate-200);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .diagram-header {
+    padding: 16px 24px;
+    background: var(--slate-50);
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .diagram-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--blue-600);
+  }
+  .diagram-subtitle {
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-top: 2px;
+  }
+
+  .diagram-body {
+    padding: 28px 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Boxes ── */
+  .node {
+    width: 340px;
+    border-radius: 8px;
+    padding: 14px 20px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    position: relative;
+  }
+  .node-sub {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .node-green {
+    background: var(--green-100);
+    border: 2px solid var(--green-400);
+    color: var(--green-900);
+  }
+  .node-green .node-sub { color: var(--green-700); }
+
+  .node-yellow {
+    background: var(--yellow-50);
+    border: 2px solid var(--yellow-400);
+    color: var(--yellow-700);
+  }
+  .node-yellow .node-sub { color: #92400e; }
+
+  .node-blue {
+    background: #eff6ff;
+    border: 2px solid #60a5fa;
+    color: #1e40af;
+  }
+  .node-blue .node-sub { color: #1d4ed8; }
+
+  .node-slate {
+    background: var(--slate-100);
+    border: 2px solid var(--slate-200);
+    color: var(--slate-700);
+  }
+  .node-slate .node-sub { color: var(--slate-500); }
+
+  .node-accent {
+    background: var(--green-200);
+    border: 2px solid var(--green-500);
+    color: var(--green-900);
+  }
+
+  /* ── Arrows ── */
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 0;
+  }
+  .arrow-line {
+    width: 2px;
+    background: var(--green-400);
+  }
+  .arrow-line-h20 { height: 20px; }
+  .arrow-line-h16 { height: 16px; }
+  .arrow-head {
+    width: 0; height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 9px solid var(--green-400);
+  }
+  .arrow-head-yellow {
+    border-top-color: var(--yellow-400);
+  }
+  .arrow-head-blue {
+    border-top-color: #60a5fa;
+  }
+  .arrow-line-yellow { background: var(--yellow-400); }
+  .arrow-line-blue { background: #60a5fa; }
+
+  .arrow-label {
+    font-size: 11px;
+    color: var(--green-700);
+    font-style: italic;
+    margin-top: 3px;
+    font-family: 'Inter', sans-serif;
+  }
+  .arrow-label-yellow { color: var(--yellow-700); }
+  .arrow-label-blue { color: #1d4ed8; }
+
+  /* ── Side return arrow ── */
+  .return-wrapper {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+  }
+  .return-track {
+    position: absolute;
+    right: -48px;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .return-line-v {
+    flex: 1;
+    width: 2px;
+    background: #60a5fa;
+  }
+  .return-line-h-top {
+    width: 20px;
+    height: 2px;
+    background: #60a5fa;
+    align-self: flex-start;
+  }
+  .return-line-h-bot {
+    width: 20px;
+    height: 2px;
+    background: #60a5fa;
+    align-self: flex-start;
+  }
+  .return-label {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+    font-size: 11px;
+    color: #1d4ed8;
+    font-style: italic;
+    font-family: 'Inter', sans-serif;
+    padding: 4px 0;
+  }
+
+  /* ── Footer note ── */
+  .footer-note {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px 20px;
+    background: var(--slate-50);
+    border: 1px solid var(--slate-200);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--slate-600);
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.6;
+  }
+  .footer-note strong {
+    color: var(--slate-800);
+  }
+</style>
+</head>
+<body>
+
+<div class="diagram-wrapper">
+  <div class="diagram-header">
+    <div class="diagram-title">HITL Interaction Flow</div>
+    <div class="diagram-subtitle">Human-in-the-Loop — State Management</div>
+  </div>
+
+  <div class="diagram-body">
+
+    <!-- Step 1: Running -->
+    <div class="node node-green">
+      Agentic Loop Running
+      <div class="node-sub">THINK → ACT → OBSERVE → repeat</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line arrow-line-h20"></div>
+      <div class="arrow-head"></div>
+    </div>
+
+    <!-- Step 2: HITL Detected -->
+    <div class="node node-yellow">
+      ⚠ HITL Marker Detected
+      <div class="node-sub">Approval | Clarification | Escalation</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line arrow-line-yellow arrow-line-h20"></div>
+      <div class="arrow-head arrow-head-yellow"></div>
+      <div class="arrow-label arrow-label-yellow">pause execution</div>
+    </div>
+
+    <!-- Step 3: Serialize -->
+    <div class="node node-yellow">
+      Serialize State
+      <div class="node-sub">Conversation history + gathered data + partial analysis</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line arrow-line-yellow arrow-line-h20"></div>
+      <div class="arrow-head arrow-head-yellow"></div>
+      <div class="arrow-label arrow-label-yellow">send to Chat Panel</div>
+    </div>
+
+    <!-- Step 4: Render Widget -->
+    <div class="node node-blue">
+      A2UI Renders Widget
+      <div class="node-sub">Approval buttons | Radio options | Alert card</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line arrow-line-blue arrow-line-h20"></div>
+      <div class="arrow-head arrow-head-blue"></div>
+      <div class="arrow-label arrow-label-blue">user sees and interacts</div>
+    </div>
+
+    <!-- Step 5: User Responds -->
+    <div class="node node-blue">
+      👤 User Responds
+      <div class="node-sub">Approve / Modify / Reject / Select option / Correct data</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line arrow-line-blue arrow-line-h20"></div>
+      <div class="arrow-head arrow-head-blue"></div>
+      <div class="arrow-label arrow-label-blue">inject response into messages</div>
+    </div>
+
+    <!-- Step 6: Deserialize -->
+    <div class="node node-slate">
+      Deserialize State
+      <div class="node-sub">Reload conversation + data + inject user decision</div>
+    </div>
+
+    <div class="arrow">
+      <div class="arrow-line arrow-line-h20"></div>
+      <div class="arrow-head"></div>
+      <div class="arrow-label">resume execution</div>
+    </div>
+
+    <!-- Step 7: Resume -->
+    <div class="node node-accent">
+      ✓ Resume Agentic Loop
+      <div class="node-sub">Continue from where it paused — may loop again or produce final output</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-note">
+      <strong>State persistence:</strong> &lt;5 min → in-memory &nbsp;|&nbsp; &gt;5 min (escalation) → session store
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

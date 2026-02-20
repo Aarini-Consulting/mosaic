@@ -54,8 +54,6 @@ MOSAIC aims to achieve the following business outcomes:
 
 MOSAIC is built on a five-layer architecture. Each layer has distinct responsibilities, and the design ensures that the routing, rendering, and connectivity layers are entirely agent-type-agnostic.
 
-> **Architecture Diagram Reference:** See `sap-agent-launchpad-high-level.html` — System Architecture diagram for the full component view with all layers, connections, and SAP backend systems.
-
 ![alt text](./docs/assets/system-architecture.png)
 
 
@@ -81,6 +79,8 @@ MOSAIC is built on a five-layer architecture. Each layer has distinct responsibi
 ### 4.3 Design Principle: Agent Graduation
 
 Prompt-based agents serve as rapid prototypes. When usage patterns stabilize and a prompt agent consistently follows the same execution path, it can be graduated to a pro-code agent for improved performance and predictability. The manifest contract remains identical — only the type field and runtime change. The Router, A2UI layer, and Chat Panel require zero modifications.
+
+![alt text](./docs/assets/agent-graduation.png)
 
 ---
 
@@ -143,7 +143,7 @@ The Router maintains conversation history within a session. Follow-up queries ro
 
 A prompt agent is not a program. It is an LLM model given a system prompt that defines its role, connected to MCP tools that give it SAP data access, and placed in an agentic loop. The execution is dynamic — the same agent might execute 4 tool calls for a simple query or 12 for a complex one.
 
-> **Architecture Diagram Reference:** See `sap-agent-launchpad-architecture-v2.html` — "Prompt Agent Runtime — Internal Architecture" section for the detailed step-by-step internal flow.
+![alt text](./docs/assets/prompt-agent-runtime-internal.png)
 
 ### 7.2 The Agentic Loop
 
@@ -170,6 +170,8 @@ The primary mechanism is the Service Catalog injected by the enrichment layer �
 
 As a fallback, the SAP OData MCP server exposes a discovery tool. The agent can ask "what services are available for accounts payable?" and receive available endpoints. Additionally, a metadata tool returns parsed $metadata for dynamic schema understanding.
 
+![alt text](./docs/assets/odata-mcp-server.png)
+
 ---
 
 ## 8. Human-in-the-Loop Design
@@ -187,6 +189,9 @@ HITL is the mechanism by which agents pause execution, present intermediate resu
 | **Escalation** | Amount thresholds, data anomalies | Flags item, stops for human decision | Alert card with Notify Manager button | External notification (email/Teams/workflow) |
 
 > **Architecture Diagram Reference:** See `sap-agent-launchpad-architecture-v2.html` — "Human-in-the-Loop Patterns" section for the detailed interaction flows showing pause/resume mechanics and state management.
+
+![alt text](./docs/assets/hitl.png)
+
 
 ### 8.2 HITL Configuration
 
@@ -293,7 +298,7 @@ The agent retrieves data, analyzes 34 vendors across five risk dimensions, and r
 - **Can Wait:** Berg Metals and 18 others (all under 30 days, no urgency)
 - **Hold:** FreshPack Ltd (€28K, open quality disputes)
 
-> **Architecture Diagram Reference:** See `sap-agent-launchpad-architecture-v2.html` — full "End-to-End Scenario" section tracing this interaction through all system components.
+![alt text](./docs/assets/end-to-end-scenario.png)
 
 ---
 
@@ -313,7 +318,9 @@ The agent retrieves data, analyzes 34 vendors across five risk dimensions, and r
 
 ## 14. Deployment Architecture
 
-> **Architecture Diagram Reference:** See `sap-agent-launchpad-high-level.html` — "Deployment Architecture" section for the full Cloud Foundry space view with all service instances.
+> **Architecture Diagram Reference:** 
+
+![alt text](./docs/assets/deployment-architecture.png)
 
 MOSAIC deploys on SAP BTP Cloud Foundry with the following components:
 

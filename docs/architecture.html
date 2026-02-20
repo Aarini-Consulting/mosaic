@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAP Agent Launchpad — Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green-50: #f0fdf4;
+    --green-100: #dcfce7;
+    --green-200: #bbf7d0;
+    --green-300: #86efac;
+    --green-400: #4ade80;
+    --green-500: #22c55e;
+    --green-600: #16a34a;
+    --green-700: #15803d;
+    --green-800: #166534;
+    --green-900: #14532d;
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-800: #1e293b;
+    --slate-900: #0f172a;
+    --blue-600: #2563eb;
+  }
+
+  body {
+    background: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--slate-800);
+    line-height: 1.6;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .doc-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--slate-900);
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-top: 4px;
+  }
+
+  /* ── Content ── */
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 48px;
+  }
+
+  /* ── Section ── */
+  .section {
+    margin-bottom: 40px;
+    border: 1px solid var(--slate-200);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 20px;
+    background: var(--slate-50);
+    border-bottom: 1px solid var(--slate-200);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--blue-600);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-header .icon {
+    font-size: 16px;
+  }
+  .section-body {
+    padding: 20px;
+  }
+  .section-desc {
+    font-size: 14px;
+    color: var(--slate-600);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+
+  /* ── Diagram Container ── */
+  .diagram-box {
+    border: 1px solid var(--slate-200);
+    border-radius: 6px;
+    padding: 12px 16px 4px;
+    margin-bottom: 20px;
+    background: #fff;
+  }
+  .diagram-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate-700);
+    margin-bottom: 16px;
+  }
+
+  /* ── Architecture Boxes ── */
+  .arch-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .arch-layer {
+    background: var(--green-50);
+    border: 2px solid var(--green-300);
+    border-radius: 8px;
+    padding: 16px;
+    position: relative;
+  }
+
+  .arch-layer-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green-800);
+    margin-bottom: 12px;
+  }
+
+  .arch-box {
+    background: var(--green-100);
+    border: 1.5px solid var(--green-400);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--green-900);
+    text-align: center;
+    position: relative;
+  }
+
+  .arch-box-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .arch-box-label {
+    font-size: 11px;
+    color: var(--green-700);
+    font-weight: 400;
+    font-family: 'Inter', sans-serif;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ── Flex layouts ── */
+  .flex-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .flex-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .flex-1 { flex: 1; }
+  .flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Arrows ── */
+  .arrow-down {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    color: var(--green-500);
+    font-size: 12px;
+    gap: 2px;
+  }
+  .arrow-down .arrow-line {
+    width: 2px;
+    height: 16px;
+    background: var(--green-400);
+  }
+  .arrow-down .arrow-head {
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--green-400);
+  }
+  .arrow-down .arrow-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: var(--green-700);
+    font-style: italic;
+  }
+
+  .arrow-right {
+    display: flex;
+    align-items: center;
+    color: var(--green-500);
+    gap: 2px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .arrow-right .arrow-line-h {
+    width: 20px;
+    height: 2px;
+    background: var(--green-400);
+  }
+  .arrow-right .arrow-head-r {
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 8px solid var(--green-400);
+  }
+  .arrow-right .arrow-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: var(--green-700);
+    font-style: italic;
+    white-space: nowrap;
+    margin: 0 4px;
+  }
+
+  .arrow-bidir {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .arrow-bidir .arrow-head-l {
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 7px solid var(--green-400);
+  }
+
+  /* ── Connector lines (vertical between sections) ── */
+  .connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0;
+  }
+  .connector .c-line {
+    width: 2px;
+    height: 20px;
+    background: var(--green-300);
+  }
+  .connector .c-head {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid var(--green-300);
+  }
+  .connector .c-label {
+    font-size: 11px;
+    color: var(--green-700);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* ── Flow diagrams (horizontal chain) ── */
+  .flow-chain {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 8px 0;
+  }
+  .flow-node {
+    background: var(--green-100);
+    border: 1.5px solid var(--green-400);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--green-900);
+    text-align: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .flow-node-accent {
+    background: var(--green-200);
+    border-color: var(--green-500);
+  }
+  .flow-node-warn {
+    background: #fef9c3;
+    border-color: #facc15;
+    color: #713f12;
+  }
+  .flow-arrow-h {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0 2px;
+  }
+  .flow-arrow-h .fa-line {
+    width: 18px;
+    height: 1.5px;
+    background: var(--green-400);
+  }
+  .flow-arrow-h .fa-head {
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid var(--green-400);
+  }
+  .flow-label {
+    font-size: 10px;
+    color: var(--green-700);
+    font-style: italic;
+    position: absolute;
+    top: -14px;
+    white-space: nowrap;
+  }
+
+  /* ── Data table style ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  .data-table th {
+    background: var(--green-100);
+    border: 1px solid var(--green-300);
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--green-900);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .data-table td {
+    border: 1px solid var(--green-200);
+    padding: 8px 12px;
+    color: var(--slate-700);
+  }
+  .data-table tr:nth-child(even) td {
+    background: var(--green-50);
+  }
+
+  /* ── Internal details ── */
+  .detail-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0;
+  }
+  .detail-list li {
+    font-size: 13px;
+    color: var(--slate-600);
+    padding: 3px 0 3px 16px;
+    position: relative;
+  }
+  .detail-list li::before {
+    content: '›';
+    position: absolute;
+    left: 4px;
+    color: var(--green-500);
+    font-weight: 700;
+  }
+
+  /* ── Grid inside diagram ── */
+  .diagram-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .diagram-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .diagram-grid-4 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .diagram-grid-5 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── Nested layer ── */
+  .nested-layer {
+    background: rgba(255,255,255,0.6);
+    border: 1.5px dashed var(--green-300);
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+  }
+  .nested-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green-700);
+    margin-bottom: 8px;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .text-xs { font-size: 11px; }
+  .text-sm { font-size: 13px; }
+  .text-green { color: var(--green-700); }
+  .text-slate { color: var(--slate-500); }
+  .font-medium { font-weight: 500; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mb-8 { margin-bottom: 8px; }
+  .gap-8 { gap: 8px; }
+  .gap-16 { gap: 16px; }
+
+  @media (max-width: 900px) {
+    .diagram-grid-2, .diagram-grid-3, .diagram-grid-4, .diagram-grid-5 {
+      grid-template-columns: 1fr;
+    }
+    .flow-chain { flex-wrap: wrap; }
+    .content { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ HEADER ═══════════════════════════════════ -->
+<div class="doc-header">
+  <div class="doc-title">SAP Agent Launchpad — Architecture Document</div>
+  <div class="doc-meta">Version: 1 | Generated: 19/02/2026, 22:30:00</div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════════════════════════ HIGH LEVEL ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">🏗️</span> High-Level Architecture</div>
+  <div class="section-body">
+    <div class="section-desc">
+      Five-layer architecture connecting business users to SAP systems through AI agents. The Chat Panel accepts natural language, the Agent Router classifies intent via LLM tool-choice, the appropriate Runtime executes the agent, MCP servers bridge to SAP, and the A2UI pipeline renders dynamic UI5 interfaces. All agent types (prompt, pro-code, low-code) share the same manifest contract, routing mechanism, and rendering pipeline.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Component Architecture</div>
+
+      <!-- Layer 1: User -->
+      <div style="display:flex;justify-content:center;margin-bottom:4px;">
+        <div class="arch-box" style="min-width:160px;">User
+          <span class="arch-box-label">Natural Language Query</span>
+        </div>
+      </div>
+
+      <div class="connector"><div class="c-line"></div><div class="c-head"></div></div>
+
+      <!-- Layer 2: Chat Panel + Router -->
+      <div class="arch-layer" style="margin-bottom:0;">
+        <div class="arch-layer-title">Presentation & Routing Layer</div>
+        <div class="flex-row gap-16">
+          <div class="arch-box flex-1">Chat Panel
+            <span class="arch-box-label">UI5 Shell / Conversational Interface</span>
+          </div>
+          <div class="arrow-bidir">
+            <div class="arrow-head-l"></div>
+            <div class="arrow-line-h" style="width:30px;height:2px;background:var(--green-400);"></div>
+            <div class="arrow-head-r" style="width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:8px solid var(--green-400);"></div>
+          </div>
+          <div class="arch-box flex-1">Agent Router
+            <span class="arch-box-label">LLM Intent Classification (Tool Choice)</span>
+          </div>
+          <div class="arrow-right">
+            <div class="arrow-line-h"></div>
+            <div class="arrow-head-r"></div>
+          </div>
+          <div class="arch-box flex-1" style="background:var(--green-50);border-style:dashed;">Agent Repository
+            <span class="arch-box-label">Manifest Store (no logic)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><div class="c-line"></div><div class="c-head"></div><div class="c-label">Routes to runtime based on agent type</div></div>
+
+      <!-- Layer 3: Runtimes -->
+      <div class="arch-layer" style="margin-bottom:0;">
+        <div class="arch-layer-title">Execution Layer — Agent Runtimes</div>
+        <div class="diagram-grid-3">
+          <div class="arch-box">Prompt Agent Runtime
+            <span class="arch-box-label">LLM Agentic Loop + Enrichment</span>
+          </div>
+          <div class="arch-box">Pro-Code Runtime
+            <span class="arch-box-label">LangGraph / Custom Executor</span>
+          </div>
+          <div class="arch-box">Low-Code Runtime
+            <span class="arch-box-label">n8n Workflow Engine</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><div class="c-line"></div><div class="c-head"></div><div class="c-label">MCP tool calls to SAP</div></div>
+
+      <!-- Layer 4: MCP + Enrichment -->
+      <div class="arch-layer" style="margin-bottom:0;">
+        <div class="arch-layer-title">SAP Connectivity Layer</div>
+        <div class="flex-row gap-16">
+          <div class="arch-box flex-1">SAP OData MCP Server
+            <span class="arch-box-label">Discovery / Read / Write / RFC</span>
+          </div>
+          <div class="arch-box flex-1">Enrichment Layer
+            <span class="arch-box-label">Service Catalog + Glossary + Context</span>
+          </div>
+        </div>
+        <div class="connector"><div class="c-line"></div><div class="c-head"></div></div>
+        <div class="flex-row gap-16" style="justify-content:center;">
+          <div class="arch-box">SAP S/4HANA
+            <span class="arch-box-label">OData V2/V4 APIs</span>
+          </div>
+          <div class="arch-box">SAP BTP Services
+            <span class="arch-box-label">XSUAA / Destination / AI Core</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector" style="padding:4px 0;"><div class="c-line" style="height:8px;"></div></div>
+
+      <!-- Layer 5: A2UI  -->
+      <div class="arch-layer">
+        <div class="arch-layer-title">Rendering Layer — A2UI Pipeline</div>
+        <div class="flex-row gap-16">
+          <div class="arch-box flex-1">A2UI Converter
+            <span class="arch-box-label">LLM → Component Spec</span>
+          </div>
+          <div class="arrow-right"><div class="arrow-line-h"></div><div class="arrow-head-r"></div></div>
+          <div class="arch-box flex-1">A2UI Renderer
+            <span class="arch-box-label">Generate UI5 XML Fragment</span>
+          </div>
+          <div class="arrow-right"><div class="arrow-line-h"></div><div class="arrow-head-r"></div></div>
+          <div class="arch-box flex-1">Chat Panel
+            <span class="arch-box-label">Render UI5 Components</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ DATA FLOW ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">🔄</span> Data Flow — Prompt Agent Execution</div>
+  <div class="section-body">
+    <div class="section-desc">
+      End-to-end request flow when a business user invokes a prompt-based agent. The Router classifies intent, the Prompt Agent Runtime enriches the prompt and enters an agentic loop, MCP tools fetch SAP data, HITL checkpoints may pause for user input, and the A2UI pipeline renders the final response.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Data Flow</div>
+
+      <!-- Row 1: User → Router -->
+      <div class="flow-chain">
+        <div class="flow-node">User</div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node">Chat Panel</div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node-accent flow-node">Agent Router
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">LLM tool-choice</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node" style="border-style:dashed;">Agent Repository
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Load manifest</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node-accent flow-node">Prompt Agent Runtime
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Enrich prompt</div>
+        </div>
+      </div>
+
+      <div class="connector"><div class="c-line"></div><div class="c-head"></div><div class="c-label">Enriched prompt + user query → LLM</div></div>
+
+      <!-- Row 2: Agentic Loop -->
+      <div class="flow-chain">
+        <div class="flow-node-accent flow-node">🧠 LLM THINK
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">What data do I need?</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node">MCP: sap_odata_read
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Invoices, Vendors, POs</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node">SAP S/4HANA
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">OData Response</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node-accent flow-node">🧠 LLM OBSERVE
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Analyze + need more?</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node" style="background:#fef9c3;border-color:#facc15;">HITL Check
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:#713f12;font-weight:400;">Approval / Clarify?</div>
+        </div>
+      </div>
+
+      <div class="connector"><div class="c-line"></div><div class="c-head"></div><div class="c-label">Final structured response</div></div>
+
+      <!-- Row 3: A2UI -->
+      <div class="flow-chain">
+        <div class="flow-node">Agent Response
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Structured JSON</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node">A2UI Converter
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">+ Google A2UI Schema</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node-accent flow-node">LLM Call
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Generate Components</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node">A2UI Renderer
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">UI5 XML Fragment</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+        <div class="flow-node">Chat Panel
+          <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Render to User</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ AGENT REPOSITORY ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">📦</span> Agent Repository — Manifest Structure</div>
+  <div class="section-body">
+    <div class="section-desc">
+      The Agent Repository is a pure manifest store with no execution logic. Every agent — regardless of type — is described by a manifest that provides the Router with intent-matching data and the Runtime with execution configuration. Agents are registered via the Agent Builder UI (prompt agents) or programmatically (pro-code agents).
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Agent Manifest Schema</div>
+
+      <div class="arch-layer">
+        <div class="arch-layer-title">Agent Repository</div>
+
+        <div class="nested-layer">
+          <div class="nested-label">Agent Manifest (one per agent)</div>
+          <div class="diagram-grid-4">
+            <div class="arch-box arch-box-sm">name<span class="arch-box-label">Unique ID</span></div>
+            <div class="arch-box arch-box-sm">type<span class="arch-box-label">prompt | langgraph | n8n</span></div>
+            <div class="arch-box arch-box-sm">description<span class="arch-box-label">Fed to Router LLM</span></div>
+            <div class="arch-box arch-box-sm">trigger_patterns[]<span class="arch-box-label">Intent keywords</span></div>
+          </div>
+          <div class="diagram-grid-4 mt-8">
+            <div class="arch-box arch-box-sm">system_prompt<span class="arch-box-label">Prompt agents only</span></div>
+            <div class="arch-box arch-box-sm">mcp_servers[]<span class="arch-box-label">SAP connections</span></div>
+            <div class="arch-box arch-box-sm">enrichment_refs[]<span class="arch-box-label">Catalog + glossary</span></div>
+            <div class="arch-box arch-box-sm">output_schema<span class="arch-box-label">Response structure</span></div>
+          </div>
+          <div class="diagram-grid-4 mt-8">
+            <div class="arch-box arch-box-sm">preferred_ui<span class="arch-box-label">cards | table | chart</span></div>
+            <div class="arch-box arch-box-sm">hitl_config<span class="arch-box-label">Approval / escalation</span></div>
+            <div class="arch-box arch-box-sm">model<span class="arch-box-label">claude-sonnet-4</span></div>
+            <div class="arch-box arch-box-sm">max_turns<span class="arch-box-label">Loop safety limit</span></div>
+          </div>
+        </div>
+
+        <div class="mt-12">
+          <div class="nested-label">Registered Agent Types</div>
+          <div class="diagram-grid-3">
+            <div class="arch-box">Prompt-Based Agents
+              <span class="arch-box-label">Defined via Agent Builder UI</span>
+            </div>
+            <div class="arch-box">Pro-Code Agents
+              <span class="arch-box-label">LangGraph / Custom (deployed)</span>
+            </div>
+            <div class="arch-box">Low-Code Agents
+              <span class="arch-box-label">n8n Workflows (visual)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ PROMPT AGENT RUNTIME ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">🧠</span> Prompt Agent Runtime — Internal Architecture</div>
+  <div class="section-body">
+    <div class="section-desc">
+      The Prompt Agent Runtime is a reusable agentic loop that executes any prompt-based agent. It loads the manifest, enriches the system prompt with domain knowledge, runs the LLM in a think-act-observe cycle, detects HITL checkpoints, and produces structured output for the A2UI pipeline.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Prompt Agent Runtime — Internal Flow</div>
+
+      <div class="arch-layer">
+        <div class="arch-layer-title">Prompt Agent Runtime</div>
+
+        <!-- Step 1: Load & Enrich -->
+        <div class="nested-layer mb-8">
+          <div class="nested-label">Step 1 — Load & Enrich Prompt</div>
+          <div class="flow-chain">
+            <div class="flow-node">Load Manifest
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">From Repository</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">Base System Prompt</div>
+            <div style="padding:0 6px;color:var(--green-600);font-weight:700;">+</div>
+            <div class="flow-node">Service Catalog
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">OData endpoints</div>
+            </div>
+            <div style="padding:0 6px;color:var(--green-600);font-weight:700;">+</div>
+            <div class="flow-node">Business Glossary
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Client terms</div>
+            </div>
+            <div style="padding:0 6px;color:var(--green-600);font-weight:700;">+</div>
+            <div class="flow-node">Company Context
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">User / CoCode / FY</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Agentic Loop -->
+        <div class="nested-layer mb-8">
+          <div class="nested-label">Step 2 — Agentic Loop (repeats until done)</div>
+          <div class="flow-chain">
+            <div class="flow-node-accent flow-node">🧠 THINK
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">LLM reasons about query</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">ACT
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">MCP tool call to SAP</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">OBSERVE
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Read tool results</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node-accent flow-node">🧠 THINK
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">Need more data?</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div style="font-family:'JetBrains Mono';font-size:12px;color:var(--green-600);white-space:nowrap;">↺ repeat or finish</div>
+          </div>
+        </div>
+
+        <!-- Step 3: HITL Detection -->
+        <div class="nested-layer mb-8" style="border-color:#facc15;background:rgba(254,249,195,0.3);">
+          <div class="nested-label" style="color:#713f12;">Step 3 — HITL Detection (during loop)</div>
+          <div class="flow-chain">
+            <div class="flow-node">LLM Response</div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">Inspect for HITL markers</div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node-warn flow-node">⏸ Pause Loop
+              <div style="font-size:10px;font-weight:400;">Serialize state</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">Send to Chat Panel
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">via A2UI</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">User Responds</div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node-accent flow-node">▶ Resume Loop
+              <div style="font-size:10px;font-weight:400;">Inject decision</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Output -->
+        <div class="nested-layer">
+          <div class="nested-label">Step 4 — Output</div>
+          <div class="flow-chain">
+            <div class="flow-node">Final LLM Response</div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node-accent flow-node">Structured JSON
+              <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">summary + items + actions</div>
+            </div>
+            <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+            <div class="flow-node">→ A2UI Converter</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ HITL ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">🤝</span> Human-in-the-Loop Patterns</div>
+  <div class="section-body">
+    <div class="section-desc">
+      Five HITL patterns allow agents to pause execution, present intermediate results, and incorporate human judgment before proceeding. Each pattern defines when the agentic loop pauses, what gets rendered in the Chat Panel, and how the user's response flows back to resume execution.
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Pattern</th>
+          <th>Trigger</th>
+          <th>Agent Behavior</th>
+          <th>UI Rendered</th>
+          <th>Resume</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Approval Gate</strong></td>
+          <td>Write operations, amounts above threshold</td>
+          <td>Pauses loop, presents proposed action with impact</td>
+          <td>Card + Approve / Modify / Reject buttons</td>
+          <td>User clicks → decision injected → loop continues</td>
+        </tr>
+        <tr>
+          <td><strong>Clarification</strong></td>
+          <td>Ambiguous query, missing parameters</td>
+          <td>Asks user to choose between options</td>
+          <td>RadioButtonGroup / Select dropdown</td>
+          <td>Selection injected as user message</td>
+        </tr>
+        <tr>
+          <td><strong>Progressive Disclosure</strong></td>
+          <td>Large result sets, layered analysis</td>
+          <td>Returns summary; details on demand</td>
+          <td>Collapsible panels / master-detail</td>
+          <td>Click to expand or trigger follow-up call</td>
+        </tr>
+        <tr>
+          <td><strong>Correction Loop</strong></td>
+          <td>User has info agent doesn't</td>
+          <td>Accepts corrections, re-runs analysis</td>
+          <td>Inline editable cards with action dropdowns</td>
+          <td>Corrections sent as new message → re-analyze</td>
+        </tr>
+        <tr>
+          <td><strong>Escalation</strong></td>
+          <td>Amount thresholds, data anomalies</td>
+          <td>Flags item, stops for human decision</td>
+          <td>Alert card + Notify Manager / Override</td>
+          <td>External notification (email/Teams/workflow)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="diagram-box mt-12">
+      <div class="diagram-label">HITL Interaction Flow</div>
+      <div class="arch-layer" style="border-color:#facc15;background:rgba(254,249,195,0.15);">
+        <div class="arch-layer-title" style="color:#713f12;">Human-in-the-Loop — State Management</div>
+        <div class="flow-chain">
+          <div class="flow-node">Agentic Loop Running</div>
+          <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+          <div class="flow-node-warn flow-node">HITL Marker Detected</div>
+          <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+          <div class="flow-node">Serialize State
+            <div style="font-size:10px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;">History + Data + Analysis</div>
+          </div>
+          <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+          <div class="flow-node">A2UI Renders Widget</div>
+          <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+          <div class="flow-node-accent flow-node">User Responds</div>
+          <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+          <div class="flow-node">Deserialize State</div>
+          <div class="flow-arrow-h"><div class="fa-line"></div><div class="fa-head"></div></div>
+          <div class="flow-node-accent flow-node">Resume Loop</div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--slate-500);font-style:italic;">
+          State persistence: &lt;5 min → in-memory &nbsp;|&nbsp; &gt;5 min (escalation) → session store
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ MCP SERVER ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">🔌</span> SAP OData MCP Server</div>
+  <div class="section-body">
+    <div class="section-desc">
+      The SAP MCP Server bridges agents to SAP systems. All agent types use the same MCP tools. Authentication uses principal propagation — agents inherit the logged-in user's SAP authorization. Write tools are always gated by HITL approval.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">MCP Server — Tool Categories</div>
+      <div class="arch-layer">
+        <div class="arch-layer-title">SAP OData MCP Server</div>
+        <div class="diagram-grid-4">
+          <div>
+            <div class="arch-box" style="margin-bottom:8px;">Discovery</div>
+            <ul class="detail-list">
+              <li>sap_odata_discover</li>
+              <li>sap_odata_metadata</li>
+            </ul>
+          </div>
+          <div>
+            <div class="arch-box" style="margin-bottom:8px;">Read</div>
+            <ul class="detail-list">
+              <li>sap_odata_read</li>
+              <li>$filter, $expand, $select</li>
+              <li>$top, $skip, $count</li>
+            </ul>
+          </div>
+          <div>
+            <div class="arch-box" style="margin-bottom:8px;">Write ⚠️ HITL</div>
+            <ul class="detail-list">
+              <li>sap_odata_create</li>
+              <li>sap_odata_update</li>
+              <li>sap_odata_delete</li>
+            </ul>
+          </div>
+          <div>
+            <div class="arch-box" style="margin-bottom:8px;">Functions</div>
+            <ul class="detail-list">
+              <li>sap_odata_action</li>
+              <li>sap_rfc_call</li>
+            </ul>
+          </div>
+        </div>
+        <div class="connector"><div class="c-line"></div><div class="c-head"></div><div class="c-label">Principal Propagation — User's SAP Identity</div></div>
+        <div class="flex-row gap-16" style="justify-content:center;">
+          <div class="arch-box">SAP S/4HANA
+            <span class="arch-box-label">OData V2/V4</span>
+          </div>
+          <div class="arch-box">Mock Server
+            <span class="arch-box-label">Dev / Demo</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="diagram-box mt-12">
+      <div class="diagram-label">Enrichment Layer — How Agents Know Which Services to Call</div>
+      <div class="arch-layer">
+        <div class="arch-layer-title">Enrichment Layer (injected into prompt at runtime)</div>
+        <div class="diagram-grid-3">
+          <div class="nested-layer">
+            <div class="nested-label">Service Catalog (90% of calls)</div>
+            <div class="arch-box arch-box-sm" style="margin-bottom:6px;">"open invoices"</div>
+            <div style="text-align:center;color:var(--green-500);font-size:16px;">↓</div>
+            <div class="arch-box arch-box-sm">API_SUPPLIER_INVOICE_SRV
+              <span class="arch-box-label">A_SupplierInvoice, ClearingDate, CompanyCode</span>
+            </div>
+          </div>
+          <div class="nested-layer">
+            <div class="nested-label">Business Glossary</div>
+            <div class="arch-box arch-box-sm" style="margin-bottom:6px;">"outstanding"</div>
+            <div style="text-align:center;color:var(--green-500);font-size:16px;">↓</div>
+            <div class="arch-box arch-box-sm">Status in ('OPEN','PENDING')
+              <span class="arch-box-label">Client-specific interpretation</span>
+            </div>
+          </div>
+          <div class="nested-layer">
+            <div class="nested-label">Company Context</div>
+            <div class="diagram-grid-2" style="gap:6px;">
+              <div class="arch-box arch-box-sm">Company Code</div>
+              <div class="arch-box arch-box-sm">Currency</div>
+              <div class="arch-box arch-box-sm">Fiscal Period</div>
+              <div class="arch-box arch-box-sm">User Scope</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ A2UI PIPELINE ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">🎨</span> A2UI Rendering Pipeline</div>
+  <div class="section-body">
+    <div class="section-desc">
+      The Adaptive UI pipeline transforms structured agent output into SAP UI5 visual components. It operates identically for all agent types. The A2UI Converter uses an LLM call with the Google A2UI Reference Schema to generate component specifications, which the Renderer converts to UI5 XML fragments.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">A2UI Pipeline — Processing Stages</div>
+      <div class="arch-layer">
+        <div class="arch-layer-title">A2UI Pipeline</div>
+        <div class="diagram-grid-3">
+          <div class="nested-layer">
+            <div class="nested-label">Stage 1 — A2UI Converter</div>
+            <div class="flow-chain" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div class="flow-node" style="text-align:left;white-space:normal;">Input: Agent JSON response</div>
+              <div style="text-align:center;color:var(--green-500);">↓</div>
+              <div class="flow-node" style="text-align:left;white-space:normal;">+ Google A2UI Reference Schema</div>
+              <div style="text-align:center;color:var(--green-500);">↓</div>
+              <div class="flow-node-accent flow-node" style="text-align:left;white-space:normal;">LLM Call → Component Spec</div>
+            </div>
+          </div>
+          <div class="nested-layer">
+            <div class="nested-label">Stage 2 — A2UI Renderer</div>
+            <div class="flow-chain" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div class="flow-node" style="text-align:left;white-space:normal;">Parse Component Info</div>
+              <div style="text-align:center;color:var(--green-500);">↓</div>
+              <div class="flow-node" style="text-align:left;white-space:normal;">Surface Info + Data Model</div>
+              <div style="text-align:center;color:var(--green-500);">↓</div>
+              <div class="flow-node-accent flow-node" style="text-align:left;white-space:normal;">Generate UI5 XML Fragment</div>
+            </div>
+          </div>
+          <div class="nested-layer">
+            <div class="nested-label">Stage 3 — Chat Panel Render</div>
+            <div class="flow-chain" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div class="flow-node" style="text-align:left;white-space:normal;">Load Fragment into Shell</div>
+              <div style="text-align:center;color:var(--green-500);">↓</div>
+              <div class="flow-node" style="text-align:left;white-space:normal;">Bind Data Model</div>
+              <div style="text-align:center;color:var(--green-500);">↓</div>
+              <div class="flow-node-accent flow-node" style="text-align:left;white-space:normal;">User Sees UI5 Components</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-12">
+          <div class="nested-label">Component Mapping</div>
+          <div class="diagram-grid-5" style="gap:8px;">
+            <div class="arch-box arch-box-sm">priority-cards<span class="arch-box-label">sap.m.GenericTile</span></div>
+            <div class="arch-box arch-box-sm">table<span class="arch-box-label">sap.m.Table</span></div>
+            <div class="arch-box arch-box-sm">chart<span class="arch-box-label">sap.viz.VizFrame</span></div>
+            <div class="arch-box arch-box-sm">approval<span class="arch-box-label">sap.m.Dialog</span></div>
+            <div class="arch-box arch-box-sm">clarification<span class="arch-box-label">sap.m.Select</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ AGENT GRADUATION ═══════════════════════════════════ -->
+<div class="section">
+  <div class="section-header"><span class="icon">📈</span> Agent Graduation Path</div>
+  <div class="section-body">
+    <div class="section-desc">
+      Prompt agents serve as rapid prototypes. When usage patterns stabilize, they graduate to pro-code agents for performance and predictability. The manifest contract is identical — only the type field changes. Router, A2UI, and Chat Panel require zero modifications.
+    </div>
+
+    <div class="diagram-box">
+      <div class="diagram-label">Graduation Lifecycle</div>
+      <div class="flow-chain">
+        <div class="flow-node" style="min-width:180px;">
+          <div style="font-weight:700;">📝 Prompt Agent</div>
+          <div style="font-size:11px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;margin-top:4px;">Day 1 — Define in Builder<br>Flexible, quick to create<br>LLM decides path</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line" style="width:30px;"></div><div class="fa-head"></div></div>
+        <div class="flow-node-warn flow-node" style="min-width:180px;">
+          <div style="font-weight:700;">📊 Patterns Emerge</div>
+          <div style="font-size:11px;font-family:Inter,sans-serif;color:#713f12;font-weight:400;margin-top:4px;">Weeks 2–4 — Logs show<br>consistent 4-step flow<br>Latency is acceptable</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line" style="width:30px;"></div><div class="fa-head"></div></div>
+        <div class="flow-node-accent flow-node" style="min-width:180px;">
+          <div style="font-weight:700;">⚙️ Pro-Code Agent</div>
+          <div style="font-size:11px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;margin-top:4px;">Month 2 — LangGraph<br>Deterministic, faster<br>LLM only for NL→filter</div>
+        </div>
+        <div class="flow-arrow-h"><div class="fa-line" style="width:30px;"></div><div class="fa-head"></div></div>
+        <div class="flow-node" style="min-width:180px;">
+          <div style="font-weight:700;">✅ Same Contract</div>
+          <div style="font-size:11px;font-family:Inter,sans-serif;color:var(--green-700);font-weight:400;margin-top:4px;">Only manifest type<br>field changes.<br>Zero other changes.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
