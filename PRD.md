@@ -6,7 +6,7 @@
 |---|---|
 | Version | 1.0 |
 | Date | February 2026 |
-| Author | Aarini Consulting |
+| Author | Arun Krishnamoorthy, Aarini Consulting |
 | Status | Draft |
 | Audience | Project Managers, Stakeholders, Business Analysts |
 
